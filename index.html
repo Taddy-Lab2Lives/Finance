@@ -2024,44 +2024,55 @@
                 const residualValue = capex * residualPct;
                 const postLeaseMonthly = electric + currentMaint + finMgmt;
                 
-                // Generate cash flow data for 2 groups: lease period and post-lease period
+                // Generate stacked cost breakdown data for 2 groups
                 const finLeaseMonths = yearsFin * 12;
                 const maxComparisonPeriod = Math.max(years, yearsFin);
                 
                 const month_labels = [];
-                const buyMonthlyCashFlow = [];
-                const finMonthlyCashFlow = [];
-                const operMonthlyCashFlow = [];
+                
+                // Cost breakdown arrays
+                const electricCosts = [];
+                const rentalCosts = [];
+                const maintenanceCosts = [];
+                const managementCosts = [];
+                const optimizationCosts = [];
                 
                 // Group 1: Months 1 to financial lease end
-                month_labels.push(`Tháng 1-${finLeaseMonths}`);
-                buyMonthlyCashFlow.push(buyMonthly);
-                finMonthlyCashFlow.push(finMonthly);
-                operMonthlyCashFlow.push(operMonthly);
+                month_labels.push(`Tự đầu tư\n(Tháng 1-${finLeaseMonths})`);
+                month_labels.push(`Thuê tài chính\n(Tháng 1-${finLeaseMonths})`);
+                month_labels.push(`BenKon\n(Tháng 1-${finLeaseMonths})`);
+                
+                // Group 1 data
+                electricCosts.push(electric, electric, electricAfter);
+                rentalCosts.push(0, finRentMonthly, operRentMonthly);
+                maintenanceCosts.push(currentMaint, currentMaint, premiumMaintMonthly);
+                managementCosts.push(buyMgmt, finMgmt, 0);
+                optimizationCosts.push(0, 0, operOptimize);
                 
                 // Group 2: Post-lease months (if comparison period extends beyond financial lease)
                 if (maxComparisonPeriod > yearsFin) {
                     const postLeaseStart = finLeaseMonths + 1;
                     const postLeaseEnd = maxComparisonPeriod * 12;
-                    month_labels.push(`Tháng ${postLeaseStart}-${postLeaseEnd}`);
-                    buyMonthlyCashFlow.push(buyMonthly);
-                    finMonthlyCashFlow.push(postLeaseMonthly);
                     
-                    // Check if BenKon lease is still active in this period
-                    if (years > yearsFin) {
-                        // BenKon continues if its lease period extends beyond financial lease
-                        operMonthlyCashFlow.push(operMonthly);
-                    } else {
-                        // BenKon has ended
-                        operMonthlyCashFlow.push(0);
-                    }
+                    month_labels.push(`Tự đầu tư\n(Tháng ${postLeaseStart}-${postLeaseEnd})`);
+                    month_labels.push(`Thuê tài chính\n(Tháng ${postLeaseStart}-${postLeaseEnd})`);
+                    month_labels.push(`BenKon\n(Tháng ${postLeaseStart}-${postLeaseEnd})`);
+                    
+                    // Group 2 data
+                    electricCosts.push(electric, electric, years > yearsFin ? electricAfter : 0);
+                    rentalCosts.push(0, 0, years > yearsFin ? operRentMonthly : 0);
+                    maintenanceCosts.push(currentMaint, currentMaint, years > yearsFin ? premiumMaintMonthly : 0);
+                    managementCosts.push(buyMgmt, finMgmt, 0);
+                    optimizationCosts.push(0, 0, years > yearsFin ? operOptimize : 0);
                 }
                 
-                console.log('Monthly cash flow data prepared:', {
+                console.log('Stacked OpEx data prepared:', {
                     month_labels,
-                    buyMonthlyCashFlow,
-                    finMonthlyCashFlow,
-                    operMonthlyCashFlow
+                    electricCosts,
+                    rentalCosts,
+                    maintenanceCosts,
+                    managementCosts,
+                    optimizationCosts
                 });
                 
                 // Create chart
@@ -2078,32 +2089,51 @@
                     monthlyCashFlowChart.destroy();
                 }
                 
-                console.log('Creating monthly cash flow chart...');
+                console.log('Creating stacked OpEx chart...');
                 monthlyCashFlowChart = new Chart(context, {
                     type: 'bar',
                     data: {
                         labels: month_labels,
                         datasets: [
                             {
-                                label: 'Tự đầu tư',
-                                data: buyMonthlyCashFlow,
-                                backgroundColor: 'rgba(220, 53, 69, 0.8)',
-                                borderColor: '#dc3545',
-                                borderWidth: 1
+                                label: 'Tiền điện',
+                                data: electricCosts,
+                                backgroundColor: '#FFC107',
+                                borderColor: '#FFB300',
+                                borderWidth: 1,
+                                stack: 'stack1'
                             },
                             {
-                                label: 'Thuê tài chính',
-                                data: finMonthlyCashFlow,
-                                backgroundColor: 'rgba(118, 75, 162, 0.8)',
-                                borderColor: '#764ba2',
-                                borderWidth: 1
+                                label: 'Phí thuê',
+                                data: rentalCosts,
+                                backgroundColor: '#17A2B8',
+                                borderColor: '#138496',
+                                borderWidth: 1,
+                                stack: 'stack1'
                             },
                             {
-                                label: 'BenKon',
-                                data: operMonthlyCashFlow,
-                                backgroundColor: 'rgba(102, 126, 234, 0.8)',
-                                borderColor: '#667eea',
-                                borderWidth: 1
+                                label: 'Phí bảo trì',
+                                data: maintenanceCosts,
+                                backgroundColor: '#28A745',
+                                borderColor: '#1E7E34',
+                                borderWidth: 1,
+                                stack: 'stack1'
+                            },
+                            {
+                                label: 'Phí quản lý',
+                                data: managementCosts,
+                                backgroundColor: '#DC3545',
+                                borderColor: '#C82333',
+                                borderWidth: 1,
+                                stack: 'stack1'
+                            },
+                            {
+                                label: 'Tối ưu năng lượng',
+                                data: optimizationCosts,
+                                backgroundColor: '#6F42C1',
+                                borderColor: '#5A32A3',
+                                borderWidth: 1,
+                                stack: 'stack1'
                             }
                         ]
                     },
@@ -2117,7 +2147,7 @@
                         plugins: {
                             title: {
                                 display: true,
-                                text: 'Chi phí vận hành OpEx qua các tháng',
+                                text: 'Chi phí vận hành OpEx - Phân tích chi tiết từng thành phần',
                                 font: {
                                     size: 16,
                                     weight: 'bold'
@@ -2128,15 +2158,24 @@
                                 position: 'top',
                                 labels: {
                                     font: {
-                                        size: 12
-                                    }
+                                        size: 11
+                                    },
+                                    usePointStyle: true,
+                                    padding: 15
                                 }
                             },
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {
                                         const value = context.parsed.y;
-                                        return context.dataset.label + ': ' + formatMillion(value) + ' triệu VNĐ';
+                                        return context.dataset.label + ': ' + formatMillion(value) + ' triệu VNĐ/tháng';
+                                    },
+                                    footer: function(tooltipItems) {
+                                        let total = 0;
+                                        tooltipItems.forEach(function(tooltipItem) {
+                                            total += tooltipItem.parsed.y;
+                                        });
+                                        return 'Tổng: ' + formatMillion(total) + ' triệu VNĐ/tháng';
                                     }
                                 }
                             }
@@ -2158,9 +2197,10 @@
                                 }
                             },
                             y: {
+                                stacked: true,
                                 title: {
                                     display: true,
-                                    text: 'Chi phí vận hành (triệu VNĐ)',
+                                    text: 'Chi phí vận hành (triệu VNĐ/tháng)',
                                     font: {
                                         size: 14,
                                         weight: 'bold'
